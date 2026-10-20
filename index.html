@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>核心支持者机制</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #0f1419;
+            color: #e8eaed;
+            line-height: 1.6;
+        }
+
+        .section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 60px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 56px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: #fff;
+        }
+
+        h2 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 32px;
+            color: #fff;
+        }
+
+        h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #fff;
+        }
+
+        p {
+            font-size: 18px;
+            color: #a8b3c1;
+            margin-bottom: 16px;
+            line-height: 1.8;
+        }
+
+        .subtitle {
+            font-size: 24px;
+            color: #a8b3c1;
+            margin-bottom: 48px;
+        }
+
+        /* 对比表 */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 48px 0;
+            background: #1a1f2b;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        th {
+            background: #242b3a;
+            padding: 20px;
+            text-align: left;
+            font-weight: 600;
+            color: #fff;
+            border-bottom: 2px solid #333c4d;
+        }
+
+        td {
+            padding: 20px;
+            border-bottom: 1px solid #242b3a;
+            color: #a8b3c1;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .highlight {
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        /* 流程图 */
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin: 64px 0;
+            flex-wrap: wrap;
+        }
+
+        .flow-box {
+            background: #1a1f2b;
+            padding: 32px 24px;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 160px;
+            border: 2px solid #2d3748;
+        }
+
+        .flow-box:hover {
+            border-color: #3b82f6;
+        }
+
+        .flow-number {
+            font-size: 14px;
+            color: #3b82f6;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .flow-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .flow-desc {
+            font-size: 14px;
+            color: #a8b3c1;
+        }
+
+        .arrow {
+            font-size: 24px;
+            color: #3b82f6;
+        }
+
+        /* 指标卡片 */
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin: 64px 0;
+        }
+
+        .metric-card {
+            background: #1a1f2b;
+            padding: 40px;
+            border-radius: 12px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .formula {
+            background: #242b3a;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+            margin: 20px 0;
+            color: #3b82f6;
+        }
+
+        /* AI 示例卡片 */
+        .example {
+            background: #1a1f2b;
+            padding: 32px;
+            border-radius: 12px;
+            margin: 24px 0;
+            border: 2px solid #2d3748;
+        }
+
+        .example.positive {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .example.negative {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .example-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 20px;
+        }
+
+        .example-text {
+            flex: 1;
+            font-size: 17px;
+            color: #e8eaed;
+            line-height: 1.6;
+        }
+
+        .example-result {
+            text-align: right;
+            margin-left: 24px;
+        }
+
+        .example-label {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .example-label.positive { color: #10b981; }
+        .example-label.negative { color: #ef4444; }
+
+        .example-meta {
+            font-size: 14px;
+            color: #a8b3c1;
+        }
+
+        .example-reason {
+            color: #a8b3c1;
+            font-size: 14px;
+            line-height: 1.8;
+            padding-left: 16px;
+            border-left: 3px solid currentColor;
+        }
+
+        /* 图表容器 */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 48px 0;
+        }
+
+        .comparison-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 64px;
+            margin: 64px 0;
+        }
+
+        .compare-item {
+            text-align: center;
+        }
+
+        .compare-chart {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 24px;
+        }
+
+        .compare-label {
+            font-size: 16px;
+            color: #a8b3c1;
+            margin-bottom: 16px;
+        }
+
+        .compare-value {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .compare-value.negative { color: #ef4444; }
+        .compare-value.positive { color: #10b981; }
+
+        /* 计算器 */
+        .calculator {
+            background: #1a1f2b;
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 40px;
+            margin: 64px 0;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            background: #242b3a;
+            border: 1px solid #333c4d;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 16px;
+            margin-top: 8px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .calc-result {
+            background: rgba(59, 130, 246, 0.08);
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            padding: 32px;
+            margin-top: 32px;
+        }
+
+        .calc-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e8eaed;
+        }
+
+        .calc-row:last-child {
+            border-bottom: none;
+            font-size: 24px;
+            font-weight: 700;
+            color: #3b82f6;
+            padding-top: 20px;
+            margin-top: 12px;
+            border-top: 2px solid #3b82f6;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 12px;
+        }
+
+        .tag.warn {
+            background: rgba(251, 146, 60, 0.15);
+            color: #fb923c;
+        }
+
+        .note {
+            background: rgba(251, 146, 60, 0.1);
+            border-left: 4px solid #fb923c;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 32px 0;
+        }
+
+        .note strong {
+            color: #fb923c;
+            font-size: 16px;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 36px; }
+            h2 { font-size: 32px; }
+            .metrics { grid-template-columns: 1fr; }
+            .comparison-row { flex-direction: column; gap: 32px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 封面 -->
+    <div class="section" style="background: linear-gradient(135deg, #0f1419 0%, #1a1f2b 100%);">
+        <div class="container" style="text-align: center;">
+            <h1>核心支持者机制</h1>
+        </div>
+    </div>
+
+    <!-- 对比 -->
+    <div class="section">
+        <div class="container">
+            <h2>普通创作者 vs 核心支持者</h2>
+
+            <table>
+                <tr>
+                    <th style="width: 140px"></th>
+                    <th>普通创作者</th>
+                    <th class="highlight">核心支持者</th>
+                </tr>
+                <tr>
+                    <td><strong>买什么</strong></td>
+                    <td>买内容产出</td>
+                    <td class="highlight">买持续承诺</td>
+                </tr>
+                <tr>
+                    <td><strong>周期</strong></td>
+                    <td>按项目、按件</td>
+                    <td class="highlight">季度或年度</td>
+                </tr>
+                <tr>
+                    <td><strong>价值</strong></td>
+                    <td>内容质量、曝光</td>
+                    <td class="highlight">关键时刻能调动</td>
+                </tr>
+                <tr>
+                    <td><strong>怎么付钱</strong></td>
+                    <td>按件付费</td>
+                    <td class="highlight">待命金 + 出活奖金</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- 搏击俱乐部 -->
+    <div class="section">
+        <div class="container">
+            <h2>搏击俱乐部的规则</h2>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; margin: 80px 0;">
+                <div>
+                    <img src="fight-club.png"
+                         style="width: 100%; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.4);"
+                         alt="搏击俱乐部">
+                </div>
+
+                <div>
+                    <div style="font-size: 24px; line-height: 1.8; color: #e8eaed;">
+                        <p style="margin-bottom: 28px;">第一条：不许说出俱乐部的事</p>
+                        <p style="margin-bottom: 28px;">第二条：不许说出俱乐部的事</p>
+                        <p style="margin-bottom: 28px;">第三条：有人喊停，战斗就结束</p>
+                        <p>第四条：新人必须战斗</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 借鉴什么 -->
+    <div class="section">
+        <div class="container">
+            <h2>我们借鉴什么</h2>
+
+            <div style="background: #1a1f2b; padding: 48px; border-radius: 12px; margin: 48px 0;">
+                <div style="display: grid; gap: 40px;">
+                    <div>
+                        <h3 style="color: #fb923c; margin-bottom: 16px; font-size: 22px;">俱乐部：等级和专属权益</h3>
+                        <p style="color: #a8b3c1; font-size: 17px; line-height: 1.8;">
+                            不是谁都能进，进来了有等级，等级高了有特权。提前试驾新车、产品内测、高管闭门会。
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 style="color: #10b981; margin-bottom: 16px; font-size: 22px;">宗族：成员之间互相担保</h3>
+                        <p style="color: #a8b3c1; font-size: 17px; line-height: 1.8;">
+                            老成员引荐新人，要签担保书。新人违约，老成员扣分。成员之间有联系，不只是和品牌有联系。
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 style="color: #8b5cf6; margin-bottom: 16px; font-size: 22px;">宗教：重复的仪式感</h3>
+                        <p style="color: #a8b3c1; font-size: 17px; line-height: 1.8;">
+                            定期活动、固定话术、成员故事。让认同变成习惯，习惯变成行动。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: rgba(59, 130, 246, 0.1); padding: 32px; border-radius: 8px; border-left: 4px solid #3b82f6; margin-top: 32px;">
+                <p style="color: #e8eaed; font-size: 18px; line-height: 1.8;">
+                    <strong>核心逻辑：</strong><br>
+                    这些机制培养认同和关系，让成员愿意长期待着。<br>
+                    但付钱的依据是实际贡献，不是身份本身。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 流程 -->
+    <div class="section">
+        <div class="container">
+            <h2>怎么运作</h2>
+
+            <div class="flow">
+                <div class="flow-box">
+                    <div class="flow-number">第 1 步</div>
+                    <div class="flow-title">签承诺</div>
+                    <div class="flow-desc">选档位，签季度承诺书</div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <div class="flow-box">
+                    <div class="flow-number">第 2 步</div>
+                    <div class="flow-title">发召集令</div>
+                    <div class="flow-desc">品牌发带编号的召集令</div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <div class="flow-box">
+                    <div class="flow-number">第 3 步</div>
+                    <div class="flow-title">成员响应</div>
+                    <div class="flow-desc">时限内完成指定行动</div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <div class="flow-box">
+                    <div class="flow-number">第 4 步</div>
+                    <div class="flow-title">提交凭证</div>
+                    <div class="flow-desc">提供内容链接、截图</div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <div class="flow-box">
+                    <div class="flow-number">第 5 步</div>
+                    <div class="flow-title">验收结算</div>
+                    <div class="flow-desc">验收通过，按价目表结算</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 两个指标 -->
+    <div class="section">
+        <div class="container">
+            <h2>两个核心指标</h2>
+
+            <div class="metrics">
+                <div class="metric-card">
+                    <h3>承诺兑现率 <span class="tag">基础</span></h3>
+                    <div class="formula">兑现率 = 完成数 ÷ 收到数</div>
+                    <p>季度待命金的验收依据。完不成就降档或扣钱。</p>
+                </div>
+
+                <div class="metric-card" style="border-left-color: #fb923c;">
+                    <h3>逆风窗口支持 <span class="tag warn">差异</span></h3>
+                    <div class="formula">奖金 = 次数 × 单价 × 窗口系数</div>
+                    <p>品牌遇到麻烦时公开站出来。这是和普通创作者的根本区别。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI 分析示例 -->
+    <div class="section">
+        <div class="container">
+            <h2>AI 情感分析示例</h2>
+            <p class="subtitle">辅助识别讨论情绪，不能直接算奖金</p>
+
+            <div class="example positive">
+                <div class="example-header">
+                    <div class="example-text">
+                        "小鹏G9空间真的够用，后排坐三个成年人完全没问题，比理想L7还宽敞"
+                    </div>
+                    <div class="example-result">
+                        <div class="example-label positive">正面</div>
+                        <div class="example-meta">强度：8.5分</div>
+                        <div class="example-meta">置信度：92%</div>
+                    </div>
+                </div>
+                <div class="example-reason" style="border-color: #10b981;">
+                    判断：关键词"够用"、"完全没问题"、"宽敞"，有对比"比理想L7还宽敞"
+                </div>
+            </div>
+
+            <div class="example negative">
+                <div class="example-header">
+                    <div class="example-text">
+                        "G9空间太小了，后排根本坐不下三个人，这价位不如买理想"
+                    </div>
+                    <div class="example-result">
+                        <div class="example-label negative">负面</div>
+                        <div class="example-meta">强度：7.8分</div>
+                        <div class="example-meta">置信度：88%</div>
+                    </div>
+                </div>
+                <div class="example-reason" style="border-color: #ef4444;">
+                    判断：关键词"太小"、"根本坐不下"，建议替代"不如买理想"
+                </div>
+            </div>
+
+            <div class="note">
+                <strong>重要</strong><br>
+                <p style="margin-top: 8px;">整体负面占比下降，不等于用户真的改变态度。可能是新增正面内容稀释了负面，可能是热度降了，也可能是平台算法变了。所以AI只能辅助观察，个人结算以实际完成的承诺为准。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 舆情案例 -->
+    <div class="section">
+        <div class="container">
+            <h2>舆情案例演示 <span class="tag warn">示例数据</span></h2>
+            <p class="subtitle">G9空间争议话题，召集成员支持</p>
+
+            <div class="comparison-row">
+                <div class="compare-item">
+                    <div class="compare-label">召集前</div>
+                    <div class="compare-chart">
+                        <canvas id="beforeChart"></canvas>
+                    </div>
+                    <div class="compare-value negative">70%</div>
+                    <div style="color: #a8b3c1;">负面占比</div>
+                </div>
+
+                <div style="font-size: 48px; color: #3b82f6;">→</div>
+
+                <div class="compare-item">
+                    <div class="compare-label">召集后 24 小时</div>
+                    <div class="compare-chart">
+                        <canvas id="afterChart"></canvas>
+                    </div>
+                    <div class="compare-value positive">30%</div>
+                    <div style="color: #a8b3c1;">负面占比</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 48px;">
+                <div style="background: rgba(251, 146, 60, 0.1); padding: 16px; border-radius: 8px; border-left: 4px solid #fb923c;">
+                    <strong style="color: #fb923c;">注意</strong>
+                    <p style="margin-top: 8px; color: #a8b3c1;">这是整体变化观察，不代表某个人的功劳。结算按召集令完成情况计算，不按舆情占比变化算。</p>
+                </div>
+            </div>
+
+            <div class="chart-container" style="background: #1a1f2b; padding: 32px; border-radius: 12px; margin-top: 48px;">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 计算器 -->
+    <div class="section">
+        <div class="container">
+            <h2>结算试算 <span class="tag warn">演示工具</span></h2>
+
+            <div class="calculator">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #e8eaed; font-weight: 500;">档位</label>
+                        <select id="tier" onchange="calc()">
+                            <option value="S">S级 - 季度待命金 9,000</option>
+                            <option value="A">A级 - 季度待命金 6,000</option>
+                            <option value="B">B级 - 季度待命金 3,000</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #e8eaed; font-weight: 500;">完成召集令次数</label>
+                        <input type="number" id="done" value="12" min="0" onchange="calc()">
+                    </div>
+
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #e8eaed; font-weight: 500;">逆风窗口支持次数</label>
+                        <input type="number" id="crisis" value="3" min="0" onchange="calc()">
+                    </div>
+
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #e8eaed; font-weight: 500;">窗口等级系数</label>
+                        <select id="multiplier" onchange="calc()">
+                            <option value="1.0">一般（1.0倍）</option>
+                            <option value="1.5">重要（1.5倍）</option>
+                            <option value="2.0" selected>重大（2.0倍）</option>
+                            <option value="3.0">危机（3.0倍）</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="calc-result">
+                    <div class="calc-row">
+                        <span>待命金</span>
+                        <span id="r1">9,000</span>
+                    </div>
+                    <div class="calc-row">
+                        <span>兑现金（<span id="d1">12</span> 次 × <span id="d2">800</span>）</span>
+                        <span id="r2">9,600</span>
+                    </div>
+                    <div class="calc-row">
+                        <span>逆风奖金（<span id="d3">3</span> 次 × 500 × <span id="d4">2.0</span>）</span>
+                        <span id="r3">3,000</span>
+                    </div>
+                    <div class="calc-row">
+                        <span>季度总收入</span>
+                        <span id="total">21,600</span>
+                    </div>
+                </div>
+
+                <p style="margin-top: 20px; font-size: 14px; color: #a8b3c1;">
+                    示例金额，实际价格需走审批。兑现率不达标时待命金会扣减。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 饼图
+        window.addEventListener('load', () => {
+            const ctx1 = document.getElementById('beforeChart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['正面', '负面'],
+                    datasets: [{
+                        data: [30, 70],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { display: false } },
+                    cutout: '70%'
+                }
+            });
+
+            const ctx2 = document.getElementById('afterChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['正面', '负面'],
+                    datasets: [{
+                        data: [70, 30],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { display: false } },
+                    cutout: '70%'
+                }
+            });
+
+            // 时间线
+            const ctx3 = document.getElementById('trendChart').getContext('2d');
+            new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: ['10/1', '10/2', '10/3', '10/4', '10/5 召集', '10/6', '10/7', '10/8', '10/9', '10/10'],
+                    datasets: [
+                        {
+                            label: '正面',
+                            data: [30, 28, 32, 31, 30, 45, 55, 62, 68, 70],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3
+                        },
+                        {
+                            label: '负面',
+                            data: [70, 72, 68, 69, 70, 55, 45, 38, 32, 30],
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: '#e8eaed', font: { size: 14 } }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: v => v + '%',
+                                color: '#a8b3c1'
+                            },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        x: {
+                            ticks: { color: '#a8b3c1' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        }
+                    }
+                }
+            });
+        });
+
+        // 计算器
+        function calc() {
+            const tier = document.getElementById('tier').value;
+            const done = parseInt(document.getElementById('done').value) || 0;
+            const crisis = parseInt(document.getElementById('crisis').value) || 0;
+            const multiplier = parseFloat(document.getElementById('multiplier').value);
+
+            const config = {
+                'S': { standby: 9000, unit: 800 },
+                'A': { standby: 6000, unit: 600 },
+                'B': { standby: 3000, unit: 400 }
+            };
+
+            const c = config[tier];
+            const standby = c.standby;
+            const fulfillment = done * c.unit;
+            const crisisBonus = crisis * 500 * multiplier;
+            const total = standby + fulfillment + crisisBonus;
+
+            document.getElementById('r1').textContent = standby.toLocaleString();
+            document.getElementById('d1').textContent = done;
+            document.getElementById('d2').textContent = c.unit;
+            document.getElementById('r2').textContent = fulfillment.toLocaleString();
+            document.getElementById('d3').textContent = crisis;
+            document.getElementById('d4').textContent = multiplier;
+            document.getElementById('r3').textContent = crisisBonus.toLocaleString();
+            document.getElementById('total').textContent = total.toLocaleString();
+        }
+
+        window.onload = () => {
+            calc();
+        };
+    </script>
+</body>
+</html>
